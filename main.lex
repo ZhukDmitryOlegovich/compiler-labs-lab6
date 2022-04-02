@@ -1,4 +1,5 @@
 %{
+	#include <iomanip>
 	#include <iostream>
 	#include <unordered_map>
 	#include <regex>
@@ -9,66 +10,59 @@
 	using std::regex;
 	using std::regex_replace;
 	using std::string;
+	using std::ostream;
+	using std::setw;
 
 	extern "C" int yylex();
 
-	struct Position
+	struct Position 
 	{
 		int line, column;
+		friend ostream& operator<<(ostream& os, const Position& p);
+	} start, finish, current({1, 1});
 
-		Position() {}
+	ostream& operator<<(ostream& os, const Position& p)
+	{
+		return os << '(' << setw(2) << p.line << ',' << setw(2) << p.column << ')';
+	}
 
-		Position(int _line, int _column) : line(_line), column(_column) {}
-
-		void print()
-		{
-			cout << "(" << (line < 10 ? " " : "") << line << ":" << (column < 10 ? " " : "") << column << ")";
-		}
-	};
-
-	int curid = 1;
-	std::unordered_map<string, int> idents;
-	Position start, finish;
-	Position current(1, 1);
+	ostream& label(ostream& os, const string& name)
+	{
+		return os << name << ' ' << start << '-' << finish << ':' << ' ';
+	}
 
 	#define YY_USER_ACTION          \
 	{                               \
 		start = current;            \
 		auto xxtext = yytext;       \
-		for (; yytext[0]; yytext++) \
+		for (; xxtext[0]; xxtext++) \
 		{                           \
-			if (yytext[0] == '\n')  \
+			if (xxtext[0] == '\n')  \
 			{                       \
-				line = 1;           \
-				column = 0;         \
+				current.line++;     \
+				current.column = 0; \
 			}                       \
-			column++;               \
+			current.column++;       \
 		}                           \
 		finish = current;           \
 	}
 %}
 %%
-(0|1+) {
-	cout << "NUMBER ";
-	start.print();
-	cout << '-';
-	finish.print();
-	cout << ' ' << (yytext[0] == '0' ? 0 : strlen(yytext)) << endl;
-}
+(0|1+) label(cout, "NUMBER") << (yytext[0] == '0' ? 0 : strlen(yytext)) << endl;
 ["]([^\\\n"]|\\[tn"])*["] {
-	cout << "REGSTR ";
-	start.print();
-	cout << '-';
-	finish.print();
 	string yystr(yytext);
 	yystr = yystr.substr(1, yystr.size() - 2);
 	yystr = regex_replace(yystr, regex("\\\\\""), "\"");
 	yystr = regex_replace(yystr, regex("\\\\n"), "\n");
 	yystr = regex_replace(yystr, regex("\\\\t"), "\t");
-	cout << " {" << yystr << '}' << endl;
+	label(cout, "REGSTR") << '{' << yystr << '}' << '=' << yystr.size() << endl;
+}
+[@]["]([^"]|["]["])*["] { // "
+	string yystr(yytext);
+	yystr = yystr.substr(2, yystr.size() - 3);
+	yystr = regex_replace(yystr, regex("\"\""), "\"");
+	label(cout, "LITSTR") << '{' << yystr << '}' << '=' << yystr.size() << endl;
 }
 [ \n\t]
-. {
-	cout << "Unexpected char at line: " << start.line << ", column: " << start.column << endl;
-}
+. label(cout, "ERROR ") << '{' << yytext << '}' << '=' << +yytext[0] << endl;
 %%
