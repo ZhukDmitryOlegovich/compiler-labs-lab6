@@ -28,12 +28,12 @@
 		return os << name << ' ' << start << '-' << finish << ':' << ' ';
 	}
 
-	struct escape_and_length {
+	struct escape_and_eq {
 		const string &v;
-		friend ostream &operator<<(ostream &os, const escape_and_length &s);
+		friend ostream &operator<<(ostream &os, const escape_and_eq &s);
 	};
 
-	ostream &operator<<(ostream &os, const escape_and_length &s) {
+	ostream &operator<<(ostream &os, const escape_and_eq &s) {
 		os << '{';
 
 		for (auto ch : s.v) {
@@ -47,7 +47,7 @@
 			}
 		}
 
-		return os << '}' << '=' << s.v.size();
+		return os << '}' << '=';
 	}
 
 	#define YY_USER_ACTION { \
@@ -70,14 +70,14 @@
 	yystr = regex_replace(yystr, regex(R"(\\")"), "\"");
 	yystr = regex_replace(yystr, regex(R"(\\n)"), "\n");
 	yystr = regex_replace(yystr, regex(R"(\\t)"), "\t");
-	label(cout, "REGSTR") << escape_and_length({yystr}) << endl;
+	label(cout, "REGSTR") << escape_and_eq({yystr}) << yystr.size() << endl;
 }
 [@]["]([^"]|["]["])*["] { // "
 	string yystr(yytext);
 	yystr = yystr.substr(2, yystr.size() - 3);
 	yystr = regex_replace(yystr, regex(R"("")"), "\"");
-	label(cout, "LITSTR") << escape_and_length({yystr}) << endl;
+	label(cout, "LITSTR") << escape_and_eq({yystr}) << yystr.size() << endl;
 }
 [ \n\t]
-. label(cout, "ERROR ") << '{' << yytext << '}' << '=' << +yytext[0] << endl;
+. label(cout, "ERROR ") << escape_and_eq({yytext}) << +yytext[0] << endl;
 %%
