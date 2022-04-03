@@ -52,15 +52,15 @@
 ["]([^\\\n"]|\\[tn"])*["] {
 	string yystr(yytext);
 	yystr = yystr.substr(1, yystr.size() - 2);
-	yystr = regex_replace(yystr, regex("\\\\\""), "\"");
-	yystr = regex_replace(yystr, regex("\\\\n"), "\n");
-	yystr = regex_replace(yystr, regex("\\\\t"), "\t");
+	yystr = regex_replace(yystr, regex(R"(\\")"), "\"");
+	yystr = regex_replace(yystr, regex(R"(\\n)"), "\n");
+	yystr = regex_replace(yystr, regex(R"(\\t)"), "\t");
 	label(cout, "REGSTR") << '{' << yystr << '}' << '=' << yystr.size() << endl;
 }
 [@]["]([^"]|["]["])*["] { // "
 	string yystr(yytext);
 	yystr = yystr.substr(2, yystr.size() - 3);
-	yystr = regex_replace(yystr, regex("\"\""), "\"");
+	yystr = regex_replace(yystr, regex(R"("")"), "\"");
 	label(cout, "LITSTR") << '{' << yystr << '}' << '=' << yystr.size() << endl;
 }
 [ \n\t]
