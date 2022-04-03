@@ -15,61 +15,52 @@
 
 	extern "C" int yylex();
 
-	struct position
-	{
+	struct position {
 		int line, column;
 		friend ostream &operator<<(ostream &os, const position &p);
 	} start, finish, current({1, 1});
 
-	ostream &operator<<(ostream &os, const position &p)
-	{
+	ostream &operator<<(ostream &os, const position &p) {
 		return os << '(' << setw(2) << p.line << ',' << setw(2) << p.column << ')';
 	}
 
-	ostream &label(ostream & os, const string &name)
-	{
+	ostream &label(ostream & os, const string &name) {
 		return os << name << ' ' << start << '-' << finish << ':' << ' ';
 	}
 
-	struct smart_string
-	{
+	struct escape_and_length {
 		const string &v;
-		friend ostream &operator<<(ostream &os, const smart_string &s);
+		friend ostream &operator<<(ostream &os, const escape_and_length &s);
 	};
-	ostream &operator<<(ostream &os, const smart_string &s)
-	{
+
+	ostream &operator<<(ostream &os, const escape_and_length &s) {
 		os << '{';
 
-		for (auto ch : s.v)
-		{
-			switch (ch)
-			{
-			case '\\': os << "\\\\"; break;
-			case '\n': os << "\\n"; break;
-			case '\t': os << "\\t"; break;
-			case '{': os << "\\{"; break;
-			case '}': os << "\\}"; break;
-			default: os << ch;
+		for (auto ch : s.v) {
+			switch (ch) {
+				case '\\': os << R"(\\)"; break;
+				case '\n': os << R"(\n)"; break;
+				case '\t': os << R"(\t)"; break;
+				case '{':  os << R"(\{)"; break;
+				case '}':  os << R"(\})"; break;
+				default:   os << ch;
 			}
 		}
 
 		return os << '}' << '=' << s.v.size();
 	}
 
-#define YY_USER_ACTION              \
-	{                               \
-		start = current;            \
-		auto xxtext = yytext;       \
-		for (; xxtext[0]; xxtext++) \
-		{                           \
-			if (xxtext[0] == '\n')  \
-			{                       \
-				current.line++;     \
-				current.column = 0; \
-			}                       \
-			current.column++;       \
-		}                           \
-		finish = current;           \
+	#define YY_USER_ACTION {          \
+		start = current;              \
+		auto xxtext = yytext;         \
+		for (; xxtext[0]; xxtext++) { \
+			if (xxtext[0] == '\n') {  \
+				current.line++;       \
+				current.column = 0;   \
+			}                         \
+			current.column++;         \
+		}                             \
+		finish = current;             \
 	}
 %}
 %%
@@ -80,13 +71,13 @@
 	yystr = regex_replace(yystr, regex(R"(\\")"), "\"");
 	yystr = regex_replace(yystr, regex(R"(\\n)"), "\n");
 	yystr = regex_replace(yystr, regex(R"(\\t)"), "\t");
-	label(cout, "REGSTR") << smart_string({yystr}) << endl;
+	label(cout, "REGSTR") << escape_and_length({yystr}) << endl;
 }
 [@]["]([^"]|["]["])*["] { // "
 	string yystr(yytext);
 	yystr = yystr.substr(2, yystr.size() - 3);
 	yystr = regex_replace(yystr, regex(R"("")"), "\"");
-	label(cout, "LITSTR") << smart_string({yystr}) << endl;
+	label(cout, "LITSTR") << escape_and_length({yystr}) << endl;
 }
 [ \n\t]
 . label(cout, "ERROR ") << '{' << yytext << '}' << '=' << +yytext[0] << endl;
