@@ -7,26 +7,26 @@
 
 	using std::cout;
 	using std::endl;
+	using std::ostream;
 	using std::regex;
 	using std::regex_replace;
-	using std::string;
-	using std::ostream;
 	using std::setw;
+	using std::string;
 
 	extern "C" int yylex();
 
-	struct Position 
+	struct Position
 	{
 		int line, column;
-		friend ostream& operator<<(ostream& os, const Position& p);
+		friend ostream &operator<<(ostream &os, const Position &p);
 	} start, finish, current({1, 1});
 
-	ostream& operator<<(ostream& os, const Position& p)
+	ostream &operator<<(ostream &os, const Position &p)
 	{
 		return os << '(' << setw(2) << p.line << ',' << setw(2) << p.column << ')';
 	}
 
-	ostream& label(ostream& os, const string& name)
+	ostream &label(ostream & os, const string &name)
 	{
 		return os << name << ' ' << start << '-' << finish << ':' << ' ';
 	}
