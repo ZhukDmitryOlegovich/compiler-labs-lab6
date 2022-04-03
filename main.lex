@@ -15,13 +15,13 @@
 
 	extern "C" int yylex();
 
-	struct Position
+	struct position
 	{
 		int line, column;
-		friend ostream &operator<<(ostream &os, const Position &p);
+		friend ostream &operator<<(ostream &os, const position &p);
 	} start, finish, current({1, 1});
 
-	ostream &operator<<(ostream &os, const Position &p)
+	ostream &operator<<(ostream &os, const position &p)
 	{
 		return os << '(' << setw(2) << p.line << ',' << setw(2) << p.column << ')';
 	}
@@ -31,7 +31,32 @@
 		return os << name << ' ' << start << '-' << finish << ':' << ' ';
 	}
 
-	#define YY_USER_ACTION          \
+	struct smart_string
+	{
+		const string &v;
+		friend ostream &operator<<(ostream &os, const smart_string &s);
+	};
+	ostream &operator<<(ostream &os, const smart_string &s)
+	{
+		os << '{';
+
+		for (auto ch : s.v)
+		{
+			switch (ch)
+			{
+			case '\\': os << "\\\\"; break;
+			case '\n': os << "\\n"; break;
+			case '\t': os << "\\t"; break;
+			case '{': os << "\\{"; break;
+			case '}': os << "\\}"; break;
+			default: os << ch;
+			}
+		}
+
+		return os << '}' << '=' << s.v.size();
+	}
+
+#define YY_USER_ACTION              \
 	{                               \
 		start = current;            \
 		auto xxtext = yytext;       \
@@ -55,13 +80,13 @@
 	yystr = regex_replace(yystr, regex(R"(\\")"), "\"");
 	yystr = regex_replace(yystr, regex(R"(\\n)"), "\n");
 	yystr = regex_replace(yystr, regex(R"(\\t)"), "\t");
-	label(cout, "REGSTR") << '{' << yystr << '}' << '=' << yystr.size() << endl;
+	label(cout, "REGSTR") << smart_string({yystr}) << endl;
 }
 [@]["]([^"]|["]["])*["] { // "
 	string yystr(yytext);
 	yystr = yystr.substr(2, yystr.size() - 3);
 	yystr = regex_replace(yystr, regex(R"("")"), "\"");
-	label(cout, "LITSTR") << '{' << yystr << '}' << '=' << yystr.size() << endl;
+	label(cout, "LITSTR") << smart_string({yystr}) << endl;
 }
 [ \n\t]
 . label(cout, "ERROR ") << '{' << yytext << '}' << '=' << +yytext[0] << endl;
