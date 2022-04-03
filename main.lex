@@ -24,7 +24,7 @@
 		return os << '(' << setw(2) << p.line << ',' << setw(2) << p.column << ')';
 	}
 
-	ostream &label(ostream & os, const string &name) {
+	ostream &label(ostream &os, const string &name) {
 		return os << name << ' ' << start << '-' << finish << ':' << ' ';
 	}
 
@@ -50,17 +50,16 @@
 		return os << '}' << '=' << s.v.size();
 	}
 
-	#define YY_USER_ACTION {          \
-		start = current;              \
-		auto xxtext = yytext;         \
-		for (; xxtext[0]; xxtext++) { \
-			if (xxtext[0] == '\n') {  \
-				current.line++;       \
-				current.column = 0;   \
-			}                         \
-			current.column++;         \
-		}                             \
-		finish = current;             \
+	#define YY_USER_ACTION { \
+		start = current; \
+		for (auto xxtext = yytext; xxtext[0]; xxtext++) { \
+			if (xxtext[0] == '\n') { \
+				current.line++; \
+				current.column = 0; \
+			} \
+			current.column++; \
+		} \
+		finish = current; \
 	}
 %}
 %%
